@@ -1,3 +1,5 @@
+import requests
+
 from . import interfaces
 
 
@@ -54,3 +56,27 @@ class KernelTasksReader(interfaces.TasksReader):
             id.on_event(event)
 
         return entities, last_timestamp
+
+
+class KernelDataConnector(interfaces.DataConnector):
+    def __init__(self, host):
+        self.host = host
+
+    def changes(self, since=""):
+        last_yielded = None
+        while True:
+            resp_json = self._fetch_changes(since)
+            has_changes = False
+
+            for result in resp_json["results"]:
+                last_yielded = result
+                has_changes = True
+                yield result
+
+            if not has_changes:
+                return
+            else:
+                since = last_yielded["timestamp"]
+
+    def _fetch_changes(self, since):
+        return requests.get(f"{self.host}/changes?since={since}").json()
