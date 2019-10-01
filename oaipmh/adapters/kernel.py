@@ -1,6 +1,4 @@
-import requests
-
-from . import interfaces
+from .. import interfaces
 
 
 class EnqueuedState:
@@ -23,7 +21,7 @@ class DeletedState:
         return self
 
 
-class KernelChangelogStateMachine:
+class ChangelogStateMachine:
     def __init__(self):
         self.state = EnqueuedState()
 
@@ -34,7 +32,7 @@ class KernelChangelogStateMachine:
         return self.state.task
 
 
-class KernelTasksReader(interfaces.TasksReader):
+class TasksReader(interfaces.TasksReader):
     def read(self, changelog):
         entities, timestamp = self._process_events(changelog)
         return (
@@ -43,7 +41,7 @@ class KernelTasksReader(interfaces.TasksReader):
         )
 
     def _process_events(self, changelog):
-        Machine = KernelChangelogStateMachine
+        Machine = ChangelogStateMachine
         entities = {}
         last_timestamp = None
         for entry in changelog:
@@ -58,7 +56,7 @@ class KernelTasksReader(interfaces.TasksReader):
         return entities, last_timestamp
 
 
-class KernelDataConnector(interfaces.DataConnector):
+class DataConnector(interfaces.DataConnector):
     def __init__(self, host):
         self.host = host
 

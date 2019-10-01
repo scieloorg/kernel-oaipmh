@@ -1,4 +1,4 @@
-from typing import Iterable, Dict, Bytes
+from typing import Iterable, Dict, ByteString
 
 
 class TasksReader:
@@ -13,7 +13,7 @@ class DataConnector:
         """Sequence of change-events on the data over time.
         """
 
-    def fetch_document(doc_id: str) -> Bytes:
+    def fetch_document(doc_id: str) -> ByteString:
         """Fetch the full data for `doc_id`.
         """
 

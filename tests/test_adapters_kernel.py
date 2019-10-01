@@ -1,11 +1,11 @@
 import unittest
 
-from oaipmh import adapters
+from oaipmh.adapters import kernel
 
 
 class KernelChangelogStateMachineTests(unittest.TestCase):
     def setUp(self):
-        self.state_machine = adapters.KernelChangelogStateMachine()
+        self.state_machine = kernel.ChangelogStateMachine()
 
     def test_initial_state_is_get(self):
         self.assertEqual(self.state_machine.task(), "get")
@@ -26,7 +26,7 @@ class KernelChangelogStateMachineTests(unittest.TestCase):
 
 class KernelTasksReaderTests(unittest.TestCase):
     def setUp(self):
-        self.reader = adapters.KernelTasksReader()
+        self.reader = kernel.TasksReader()
 
     def test_modified_twice(self):
         changelog = [
