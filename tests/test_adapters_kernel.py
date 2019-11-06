@@ -39,9 +39,9 @@ class KernelTasksReaderTests(unittest.TestCase):
                 "id": "/documents/0034-8910-rsp-48-2-0347",
             },
         ]
-        tasks, _ = self.reader.read(changelog)
+        tasks = self.reader.read(changelog)
         self.assertEqual(
-            tasks, [{"id": "/documents/0034-8910-rsp-48-2-0347", "task": "get"}]
+            tasks.tasks, [{"id": "/documents/0034-8910-rsp-48-2-0347", "task": "get"}]
         )
 
     def test_modified_and_deleted(self):
@@ -56,9 +56,10 @@ class KernelTasksReaderTests(unittest.TestCase):
                 "deleted": True,
             },
         ]
-        tasks, _ = self.reader.read(changelog)
+        tasks = self.reader.read(changelog)
         self.assertEqual(
-            tasks, [{"id": "/documents/0034-8910-rsp-48-2-0347", "task": "delete"}]
+            tasks.tasks,
+            [{"id": "/documents/0034-8910-rsp-48-2-0347", "task": "delete"}],
         )
 
     def test_many_documents(self):
@@ -73,9 +74,9 @@ class KernelTasksReaderTests(unittest.TestCase):
                 "deleted": True,
             },
         ]
-        tasks, _ = self.reader.read(changelog)
+        tasks = self.reader.read(changelog)
         self.assertEqual(
-            tasks,
+            tasks.tasks,
             [
                 {"id": "/documents/8734-7911-foo-22-1-0013", "task": "get"},
                 {"id": "/documents/0034-8910-rsp-48-2-0347", "task": "delete"},

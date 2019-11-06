@@ -1,5 +1,7 @@
 from .. import interfaces
 
+import requests
+
 
 class EnqueuedState:
     task = "get"
@@ -32,13 +34,35 @@ class ChangelogStateMachine:
         return self.state.task
 
 
+class Tasks(interfaces.Tasks):
+    def _is_document_change_task(self, task):
+        """Returns `True` if `task` is related to a document.
+        """
+        return (
+            task.get("id", "").startswith("/documents")
+            and len(task.get("id", "").split("/")) == 3
+        )
+
+    def docs_to_get(self):
+        return [
+            t
+            for t in self.tasks
+            if t.get("task") == "get" and self._is_document_change_task(t)
+        ]
+
+    def docs_to_del(self):
+        return [
+            t
+            for t in self.tasks
+            if t.get("task") == "delete" and self._is_document_change_task(t)
+        ]
+
+
 class TasksReader(interfaces.TasksReader):
     def read(self, changelog):
         entities, timestamp = self._process_events(changelog)
-        return (
-            [{"id": id, "task": state.task()} for id, state in entities.items()],
-            timestamp,
-        )
+        tasks = [{"id": id, "task": state.task()} for id, state in entities.items()]
+        return Tasks(tasks=tasks, timestamp=timestamp)
 
     def _process_events(self, changelog):
         Machine = ChangelogStateMachine
