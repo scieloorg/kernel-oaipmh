@@ -35,7 +35,7 @@ def sync(args):
         source=kernel.DataConnector(args.source), reader=kernel.TasksReader()
     )
     results = sync.sync()
-    pp(results.docs_to_get())
+    pp(list(results.docs_to_get()))
 
 
 def cli(argv=None):

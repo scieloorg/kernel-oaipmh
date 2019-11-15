@@ -10,10 +10,6 @@ class Tasks:
     acessado no atributo de mesmo nome.
     """
 
-    def __init__(self, tasks, timestamp):
-        self.tasks = tasks
-        self.timestamp = timestamp
-
     def docs_to_get(self) -> Iterable[Dict]:
         """Referências aos documentos que devem ser obtidos do DB remoto.
         """

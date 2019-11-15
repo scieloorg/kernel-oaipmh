@@ -1,6 +1,19 @@
-from .. import interfaces
+import os
+import re
+import time
+import logging
+import functools
+from urllib.parse import urljoin
 
 import requests
+
+from .. import interfaces, exceptions
+
+
+LOGGER = logging.getLogger(__name__)
+
+MAX_RETRIES = int(os.environ.get("OAIPMH_MAX_RETRIES", "4"))
+BACKOFF_FACTOR = float(os.environ.get("OAIPMH_BACKOFF_FACTOR", "1.2"))
 
 
 class EnqueuedState:
@@ -35,27 +48,23 @@ class ChangelogStateMachine:
 
 
 class Tasks(interfaces.Tasks):
+    def __init__(self, tasks, timestamp):
+        self.tasks = tasks
+        self.timestamp = timestamp
+
     def _is_document_change_task(self, task):
-        """Returns `True` if `task` is related to a document.
+        """Retorna `True` caso `task` seja referente a um documento.
         """
-        return (
-            task.get("id", "").startswith("/documents")
-            and len(task.get("id", "").split("/")) == 3
-        )
+        return bool(re.match(r"^/documents/[\w-]+$", task.get("id", "")))
+
+    def docs(self):
+        return (t for t in self.tasks if self._is_document_change_task(t))
 
     def docs_to_get(self):
-        return [
-            t
-            for t in self.tasks
-            if t.get("task") == "get" and self._is_document_change_task(t)
-        ]
+        return (t for t in self.docs() if t.get("task") == "get")
 
     def docs_to_del(self):
-        return [
-            t
-            for t in self.tasks
-            if t.get("task") == "delete" and self._is_document_change_task(t)
-        ]
+        return (t for t in self.docs() if t.get("task") == "delete")
 
 
 class TasksReader(interfaces.TasksReader):
@@ -80,6 +89,80 @@ class TasksReader(interfaces.TasksReader):
         return entities, last_timestamp
 
 
+class retry_gracefully:
+    """Produz decorador que torna o objeto decorado resiliente às exceções dos
+    tipos informados em `exc_list`. Tenta no máximo `max_retries` vezes com
+    intervalo exponencial entre as tentativas.
+    """
+
+    def __init__(
+        self,
+        max_retries=MAX_RETRIES,
+        backoff_factor=BACKOFF_FACTOR,
+        exc_list=(exceptions.RetryableError,),
+    ):
+        self.max_retries = int(max_retries)
+        self.backoff_factor = float(backoff_factor)
+        self.exc_list = tuple(exc_list)
+
+    def _sleep(self, seconds):
+        time.sleep(seconds)
+
+    def __call__(self, func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            retry = 1
+            while True:
+                try:
+                    return func(*args, **kwargs)
+                except self.exc_list as exc:
+                    if retry <= self.max_retries:
+                        wait_seconds = self.backoff_factor ** retry
+                        LOGGER.info(
+                            'could not get the result for "%s" with *args "%s" '
+                            'and **kwargs "%s". retrying in %s seconds '
+                            "(retry #%s): %s",
+                            func.__qualname__,
+                            args,
+                            kwargs,
+                            str(wait_seconds),
+                            retry,
+                            exc,
+                        )
+                        self._sleep(wait_seconds)
+                        retry += 1
+                    else:
+                        raise
+
+        return wrapper
+
+
+@retry_gracefully()
+def fetch_data(url: str, timeout: float = 2) -> bytes:
+    try:
+        response = requests.get(url, timeout=timeout)
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as exc:
+        raise exceptions.RetryableError(exc) from exc
+    except (
+        requests.exceptions.InvalidSchema,
+        requests.exceptions.MissingSchema,
+        requests.exceptions.InvalidURL,
+    ) as exc:
+        raise exceptions.NonRetryableError(exc) from exc
+    else:
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as exc:
+            if 400 <= exc.response.status_code < 500:
+                raise exceptions.NonRetryableError(exc) from exc
+            elif 500 <= exc.response.status_code < 600:
+                raise exceptions.RetryableError(exc) from exc
+            else:
+                raise
+
+    return response.json()
+
+
 class DataConnector(interfaces.DataConnector):
     def __init__(self, host):
         self.host = host
@@ -101,4 +184,4 @@ class DataConnector(interfaces.DataConnector):
                 since = last_yielded["timestamp"]
 
     def _fetch_changes(self, since):
-        return requests.get(f"{self.host}/changes?since={since}").json()
+        return fetch_data(urljoin(self.host, f"changes?since={since}"))
