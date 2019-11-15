@@ -1,6 +1,7 @@
 import os
 import re
 import time
+import json
 import logging
 import functools
 from urllib.parse import urljoin
@@ -160,7 +161,7 @@ def fetch_data(url: str, timeout: float = 2) -> bytes:
             else:
                 raise
 
-    return response.json()
+    return response.content
 
 
 class DataConnector(interfaces.DataConnector):
@@ -168,6 +169,8 @@ class DataConnector(interfaces.DataConnector):
         self.host = host
 
     def changes(self, since=""):
+        """Obtém os registros de mudança ocorridos desde `since`.
+        """
         last_yielded = None
         while True:
             resp_json = self._fetch_changes(since)
@@ -184,4 +187,12 @@ class DataConnector(interfaces.DataConnector):
                 since = last_yielded["timestamp"]
 
     def _fetch_changes(self, since):
-        return fetch_data(urljoin(self.host, f"changes?since={since}"))
+        return json.loads(fetch_data(urljoin(self.host, f"changes?since={since}")))
+
+    def doc_front(self, id):
+        """Obtém o *front-matter* do documento identificado por `id`.
+
+        :param id: identificador retornado pelo *endpoint* de mudanças, por 
+        exemplo `/documents/rgTRVDFHk5GyfDgwNjKbQCJ`.
+        """
+        return json.loads(fetch_data(urljoin(self.host, f"{id}/front")))
