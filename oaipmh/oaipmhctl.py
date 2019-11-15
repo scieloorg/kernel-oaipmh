@@ -48,12 +48,24 @@ def _parse_date(date):
     raise ValueError(f"time data '{date}' does not match any known format")
 
 
+class PoisonPill:
+    """Sinaliza para as threads que a execução da rotina deve ser abortada. 
+    """
+
+    def __init__(self):
+        self.poisoned = False
+
+
 class Synchronizer:
     def __init__(
-        self, source: interfaces.DataConnector, reader: interfaces.TasksReader
+        self,
+        source: interfaces.DataConnector,
+        reader: interfaces.TasksReader,
+        max_concurrency: int = 4,
     ):
         self.source = source
         self.reader = reader
+        self.max_concurrency = max_concurrency
 
     def _doc_front(self, id):
         """Obtém o *front-matter* do documento referenciado por `id`.
@@ -63,7 +75,10 @@ class Synchronizer:
         """
         return self.source.doc_front(id)
 
-    def _record_metadata(self, task):
+    def _record_metadata(self, task, poison_pill=None):
+        if poison_pill and poison_pill.poisoned:
+            return
+
         url = task["id"]
         front = self._doc_front(url)
         sets = [extractor(front) for extractor in SETS_EXTRACTORS]
@@ -78,18 +93,27 @@ class Synchronizer:
         }
 
     def get_docs(self, tasks):
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            future_to_task = {
-                executor.submit(self._record_metadata, task): task for task in tasks
-            }
-            for future in concurrent.futures.as_completed(future_to_task):
-                task = future_to_task[future]
-                try:
-                    result = future.result()
-                except Exception as exc:
-                    LOGGER.exception('could not sync "%r": %s', task, exc)
-                else:
-                    print(result)
+        ppill = PoisonPill()
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=self.max_concurrency
+        ) as executor:
+            try:
+                future_to_task = {
+                    executor.submit(self._record_metadata, task, ppill): task
+                    for task in tasks
+                }
+                for future in concurrent.futures.as_completed(future_to_task):
+                    task = future_to_task[future]
+                    try:
+                        result = future.result()
+                    except Exception as exc:
+                        LOGGER.exception('could not sync "%r": %s', task, exc)
+                    else:
+                        print(result)
+
+            except KeyboardInterrupt:
+                ppill.poisoned = True
+                raise
 
     def sync(self, since=""):
         tasks = self.reader.read(self.source.changes(since=since))
@@ -100,7 +124,9 @@ def sync(args):
     from oaipmh.adapters import kernel
 
     sync = Synchronizer(
-        source=kernel.DataConnector(args.source), reader=kernel.TasksReader()
+        source=kernel.DataConnector(args.source),
+        reader=kernel.TasksReader(),
+        max_concurrency=args.concurrency,
     )
     sync.sync()
 
@@ -115,6 +141,7 @@ def cli(argv=None):
     subparsers = parser.add_subparsers()
 
     parser_sync = subparsers.add_parser("sync", help="Sync data with a remote source.")
+    parser_sync.add_argument("-c", "--concurrency", type=int, default=4)
     parser_sync.add_argument("source", help="URI of the data source.")
     parser_sync.set_defaults(func=sync)
 
