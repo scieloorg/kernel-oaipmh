@@ -9,3 +9,8 @@ class NonRetryableError(Exception):
     """Erro do qual não pode ser recuperado sem modificar o estado dos dados 
     na parte cliente, e.g., recurso solicitado não exite, URI inválida etc.
     """
+
+
+class AlreadyExists(NonRetryableError):
+    """O objeto ou registro já existe e não pode ser criado novamente.
+    """

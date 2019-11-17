@@ -60,10 +60,12 @@ class Synchronizer:
     def __init__(
         self,
         source: interfaces.DataConnector,
+        dest,  # interfaces.Session
         reader: interfaces.TasksReader,
         max_concurrency: int = 4,
     ):
         self.source = source
+        self.dest = dest
         self.reader = reader
         self.max_concurrency = max_concurrency
 
@@ -94,6 +96,7 @@ class Synchronizer:
 
     def get_docs(self, tasks):
         ppill = PoisonPill()
+        session = self.dest
         with concurrent.futures.ThreadPoolExecutor(
             max_workers=self.max_concurrency
         ) as executor:
@@ -109,7 +112,7 @@ class Synchronizer:
                     except Exception as exc:
                         LOGGER.exception('could not sync "%r": %s', task, exc)
                     else:
-                        print(result)
+                        session.documents.add(result)
 
             except KeyboardInterrupt:
                 ppill.poisoned = True
@@ -121,10 +124,16 @@ class Synchronizer:
 
 
 def sync(args):
-    from oaipmh.adapters import kernel
+    from oaipmh.adapters import kernel, mongodb
+
+    mongo = mongodb.MongoDB(
+        [dsn.strip() for dsn in args.mongodb_dsn.split() if dsn],
+        options={"replicaSet": args.replicaset},
+    )
 
     sync = Synchronizer(
         source=kernel.DataConnector(args.source),
+        dest=mongodb.Session(mongo),
         reader=kernel.TasksReader(),
         max_concurrency=args.concurrency,
     )
@@ -133,7 +142,7 @@ def sync(args):
 
 def cli(argv=None):
     if argv is None:
-        argv = sys.argv
+        argv = sys.argv[1:]
     parser = argparse.ArgumentParser(
         description="SciELO OAI-PMH data provider command line utility.", epilog=EPILOG
     )
@@ -142,10 +151,12 @@ def cli(argv=None):
 
     parser_sync = subparsers.add_parser("sync", help="Sync data with a remote source.")
     parser_sync.add_argument("-c", "--concurrency", type=int, default=4)
+    parser_sync.add_argument("-r", "--replicaset", default="")
     parser_sync.add_argument("source", help="URI of the data source.")
+    parser_sync.add_argument("mongodb_dsn", help="DSN of the data destination.")
     parser_sync.set_defaults(func=sync)
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     # todas as mensagens serão omitidas se level > 50
     logging.basicConfig(
         level=getattr(logging, args.loglevel.upper(), 999), format=LOGGER_FMT

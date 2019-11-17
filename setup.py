@@ -11,7 +11,7 @@ setuptools.setup(
     version="0.1",
     author="Gustavo Fonseca",
     author_email="gustavo@gfonseca.net",
-    description="", 
+    description="",
     long_description=long_description,
     long_description_content_type="text/markdown",
     license="2-clause BSD",
@@ -20,7 +20,7 @@ setuptools.setup(
     ),
     include_package_data=False,
     python_requires=">=3.7",
-    install_requires=["requests"],
+    install_requires=["requests", "pymongo"],
     test_suite="tests",
     classifiers=(
         "Development Status :: 2 - Pre-Alpha",
