@@ -2,7 +2,6 @@ import sys
 import argparse
 import logging
 import concurrent.futures
-from datetime import datetime
 
 from oaipmh import interfaces
 
@@ -16,36 +15,6 @@ code for more information.
 """
 
 LOGGER_FMT = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-
-
-def _nestget(data, *path, default=""):
-    """Obtém valores de list ou dicionários."""
-    for key_or_index in path:
-        try:
-            data = data[key_or_index]
-        except (KeyError, IndexError):
-            return default
-    return data
-
-
-def extract_acronym(front):
-    return {
-        "set_spec": _nestget(front, "journal_meta", 0, "journal_publisher_id", 0),
-        "set_name": _nestget(front, "journal_meta", 0, "journal_title", 0),
-    }
-
-
-SETS_EXTRACTORS = [extract_acronym]
-
-
-def _parse_date(date):
-    for fmt in ["%d %m %Y", "%d%m%Y"]:
-        try:
-            return datetime.strptime(date, fmt)
-        except ValueError:
-            continue
-
-    raise ValueError(f"time data '{date}' does not match any known format")
 
 
 class PoisonPill:
@@ -69,30 +38,11 @@ class Synchronizer:
         self.reader = reader
         self.max_concurrency = max_concurrency
 
-    def _doc_front(self, id):
-        """Obtém o *front-matter* do documento referenciado por `id`.
-
-        `id` deve ser uma string de texto no formato 
-        `/documents/rgTRVDFHk5GyfDgwNjKbQCJ`.
-        """
-        return self.source.doc_front(id)
-
     def _record_metadata(self, task, poison_pill=None):
         if poison_pill and poison_pill.poisoned:
             return
 
-        url = task["id"]
-        front = self._doc_front(url)
-        sets = [extractor(front) for extractor in SETS_EXTRACTORS]
-        doc_id = url.rsplit("/", 1)[-1]
-        pub_date = _parse_date(_nestget(front, "pub_date", 0, "text", 0))
-        return {
-            "url": url,
-            "identifier": f"oai:scielo:{doc_id}",
-            "sets": sets,
-            "timestamp": datetime.utcnow(),
-            "pub_date": pub_date,
-        }
+        return self.source.doc_metadata(task["id"])
 
     def get_docs(self, tasks):
         ppill = PoisonPill()

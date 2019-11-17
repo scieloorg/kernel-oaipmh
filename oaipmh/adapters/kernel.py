@@ -4,6 +4,7 @@ import time
 import json
 import logging
 import functools
+from datetime import datetime
 from urllib.parse import urljoin
 
 import requests
@@ -164,6 +165,36 @@ def fetch_data(url: str, timeout: float = 2) -> bytes:
     return response.content
 
 
+def _nestget(data, *path, default=""):
+    """Obtém valores de list ou dicionários."""
+    for key_or_index in path:
+        try:
+            data = data[key_or_index]
+        except (KeyError, IndexError):
+            return default
+    return data
+
+
+def extract_acronym(front):
+    return {
+        "set_spec": _nestget(front, "journal_meta", 0, "journal_publisher_id", 0),
+        "set_name": _nestget(front, "journal_meta", 0, "journal_title", 0),
+    }
+
+
+SETS_EXTRACTORS = [extract_acronym]
+
+
+def _parse_date(date):
+    for fmt in ["%d %m %Y", "%d%m%Y"]:
+        try:
+            return datetime.strptime(date, fmt)
+        except ValueError:
+            continue
+
+    raise ValueError(f"time data '{date}' does not match any known format")
+
+
 class DataConnector(interfaces.DataConnector):
     def __init__(self, host):
         self.host = host
@@ -189,10 +220,31 @@ class DataConnector(interfaces.DataConnector):
     def _fetch_changes(self, since):
         return json.loads(fetch_data(urljoin(self.host, f"changes?since={since}")))
 
-    def doc_front(self, id):
-        """Obtém o *front-matter* do documento identificado por `id`.
+    def _absolute_url(self, url):
+        return urljoin(self.host, url) if not url.startswith(self.host) else url
 
-        :param id: identificador retornado pelo *endpoint* de mudanças, por 
-        exemplo `/documents/rgTRVDFHk5GyfDgwNjKbQCJ`.
+    def _doc_front(self, url):
+        """Obtém o *front-matter* do documento identificado por `url`.
+
+        :param url: URL relativa para o documento, por exemplo 
+        `/documents/rgTRVDFHk5GyfDgwNjKbQCJ`.
         """
-        return json.loads(fetch_data(urljoin(self.host, f"{id}/front")))
+        return json.loads(fetch_data(self._absolute_url(f"{url}/front")))
+
+    def doc_metadata(self, url, sets_extractors=SETS_EXTRACTORS):
+        """Obtém metadados do documento identificado por `url`. 
+
+        :param url: URL relativa para o documento, por exemplo
+        `/documents/rgTRVDFHk5GyfDgwNjKbQCJ`.
+        """
+        front = self._doc_front(url)
+        sets = [extractor(front) for extractor in sets_extractors]
+        doc_id = url.rsplit("/", 1)[-1]
+        pub_date = _parse_date(_nestget(front, "pub_date", 0, "text", 0))
+        return {
+            "url": self._absolute_url(url),
+            "identifier": f"oai:scielo:{doc_id}",
+            "sets": sets,
+            "timestamp": datetime.utcnow(),
+            "pub_date": pub_date,
+        }
