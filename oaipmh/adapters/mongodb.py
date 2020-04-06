@@ -90,6 +90,9 @@ class DocumentStore:
                 'cannot add data with id "%s": %s' % (doc["_id"], exc)
             ) from None
 
+    def upsert(self, doc: dict):
+        self._collection.update({"doc_id": doc["doc_id"]}, doc, upsert=True)
+
     def sets(self):
         pipeline = [
             {
