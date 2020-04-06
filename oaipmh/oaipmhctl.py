@@ -62,7 +62,7 @@ class Synchronizer:
                     except Exception as exc:
                         LOGGER.exception('could not sync "%r": %s', task, exc)
                     else:
-                        session.documents.add(result)
+                        session.documents.upsert(result)
 
             except KeyboardInterrupt:
                 ppill.poisoned = True
