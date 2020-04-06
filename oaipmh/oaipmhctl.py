@@ -87,7 +87,9 @@ def sync(args):
         reader=kernel.TasksReader(),
         max_concurrency=args.concurrency,
     )
-    sync.sync()
+    # TODO: gerenciar automaticamente o valor de `since`.
+    last_synced_timestamp = sync.sync(since=args.since)
+    print("Last synced timestamp: ", last_synced_timestamp)
 
 
 def cli(argv=None):
@@ -102,6 +104,7 @@ def cli(argv=None):
     parser_sync = subparsers.add_parser("sync", help="Sync data with a remote source.")
     parser_sync.add_argument("-c", "--concurrency", type=int, default=4)
     parser_sync.add_argument("-r", "--replicaset", default="")
+    parser_sync.add_argument("-s", "--since", default="")
     parser_sync.add_argument("source", help="URI of the data source.")
     parser_sync.add_argument("mongodb_dsn", help="DSN of the data destination.")
     parser_sync.set_defaults(func=sync)
