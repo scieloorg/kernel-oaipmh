@@ -186,7 +186,7 @@ SETS_EXTRACTORS = [extract_acronym]
 
 
 def _parse_date(date):
-    for fmt in ["%d %m %Y", "%d%m%Y"]:
+    for fmt in ["%d %m %Y", "%d%m%Y", "%m %Y", "%Y"]:
         try:
             return datetime.strptime(date, fmt)
         except ValueError:
@@ -241,10 +241,54 @@ class DataConnector(interfaces.DataConnector):
         sets = [extractor(front) for extractor in sets_extractors]
         doc_id = url.rsplit("/", 1)[-1]
         pub_date = _parse_date(_nestget(front, "pub_date", 0, "text", 0))
+        creators = [
+            {
+                "surname": _nestget(c, "contrib_surname", 0),
+                "given_name": _nestget(c, "contrib_given_names", 0),
+            }
+            for c in front.get("contrib", [])
+        ]
+        original_lang = _nestget(front, "article", 0, "lang", 0)
+
+        titles = [
+            {
+                "lang": original_lang,
+                "title": _nestget(front, "article_meta", 0, "article_title", 0),
+            },
+        ]
+
+        # `descriptions` é a soma de todos os resumos disponíveis.
+        descriptions = [
+            {
+                "lang": original_lang,
+                "description": _nestget(front, "article_meta", 0, "abstract", 0),
+            }
+        ]
+        for trans_abstract in front.get("trans_abstract", []):
+            descriptions.append({
+                "lang": _nestget(trans_abstract, "lang", 0),
+                "description": _nestget(trans_abstract, "text", 0),
+            })
+
+        keywords = []
+        for kwd_group in front.get("kwd_group", []):
+            lang = _nestget(kwd_group, "lang", 0)
+            for kwd in kwd_group.get("kwd", []):
+                keywords.append({"lang": lang, "kwd": kwd})
+
         return {
-            "url": self._absolute_url(url),
-            "identifier": f"oai:scielo:{doc_id}",
+            "xml_url": self._absolute_url(url),
+            "doc_id": doc_id,
             "sets": sets,
             "timestamp": datetime.utcnow(),
             "pub_date": pub_date,
+            "language": original_lang,
+            "publisher": _nestget(front, "journal_meta", 0, "publisher_name", 0),
+            "doi": _nestget(front, "article_meta", 0, "article_doi", 0),
+            "creators": creators,
+            "titles": titles,
+            "descriptions": descriptions,
+            "keywords": keywords,
+            "type": _nestget(front, "article", 0, "type", 0),
+            #TODO: add permissions
         }
