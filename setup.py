@@ -30,4 +30,5 @@ setuptools.setup(
         "Programming Language :: Python :: 3 :: Only",
         "Operating System :: OS Independent",
     ),
+    entry_points={"paste.app_factory": ["main = oaipmhserver.server:main",],},
 )

@@ -95,12 +95,7 @@ class DocumentStore:
 
     def sets(self):
         pipeline = [
-            {
-                "$group": {
-                    "_id": "$sets.set_spec",
-                    "names": {"$push": "$sets.set_name"},
-                }
-            }
+            {"$group": {"_id": "$sets.set_spec", "names": {"$push": "$sets.set_name"},}}
         ]
         return sorted(
             [

@@ -265,10 +265,12 @@ class DataConnector(interfaces.DataConnector):
             }
         ]
         for trans_abstract in front.get("trans_abstract", []):
-            descriptions.append({
-                "lang": _nestget(trans_abstract, "lang", 0),
-                "description": _nestget(trans_abstract, "text", 0),
-            })
+            descriptions.append(
+                {
+                    "lang": _nestget(trans_abstract, "lang", 0),
+                    "description": _nestget(trans_abstract, "text", 0),
+                }
+            )
 
         keywords = []
         for kwd_group in front.get("kwd_group", []):
@@ -290,5 +292,5 @@ class DataConnector(interfaces.DataConnector):
             "descriptions": descriptions,
             "keywords": keywords,
             "type": _nestget(front, "article", 0, "type", 0),
-            #TODO: add permissions
+            # TODO: add permissions
         }
