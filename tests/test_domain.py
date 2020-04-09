@@ -1,6 +1,6 @@
 import unittest
 
-from oaipmh import domain
+from oaipmhserver import domain
 
 
 class ResumptionTokenInterfaceTest:

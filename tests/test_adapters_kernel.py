@@ -1,6 +1,6 @@
 import unittest
 
-from oaipmh.adapters import kernel
+from oaipmhserver.adapters import kernel
 
 
 class KernelChangelogStateMachineTests(unittest.TestCase):

@@ -20,7 +20,7 @@ setuptools.setup(
     ),
     include_package_data=False,
     python_requires=">=3.7",
-    install_requires=["requests", "pymongo"],
+    install_requires=["requests", "pymongo", "pyoai"],
     test_suite="tests",
     classifiers=(
         "Development Status :: 2 - Pre-Alpha",

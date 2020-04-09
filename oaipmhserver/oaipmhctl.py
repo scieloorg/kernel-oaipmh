@@ -3,7 +3,7 @@ import argparse
 import logging
 import concurrent.futures
 
-from oaipmh import interfaces
+from oaipmhserver import interfaces
 
 
 LOGGER = logging.getLogger(__name__)
@@ -69,21 +69,28 @@ class Synchronizer:
                 raise
 
     def sync(self, since=""):
+        """Baixa e armazena localmente todos os registros mais novos do que
+        `since`.
+        
+        Retorna a o timestamp do último registro baixado.
+        """
         tasks = self.reader.read(self.source.changes(since=since))
         self.get_docs(tasks.docs_to_get())
+        return tasks.timestamp
 
 
 def sync(args):
-    from oaipmh.adapters import kernel, mongodb
+    from oaipmhserver.adapters import kernel, mongodb
 
     mongo = mongodb.MongoDB(
         [dsn.strip() for dsn in args.mongodb_dsn.split() if dsn],
         options={"replicaSet": args.replicaset},
     )
+    session = mongodb.Session(mongo)
 
     sync = Synchronizer(
         source=kernel.DataConnector(args.source),
-        dest=mongodb.Session(mongo),
+        dest=session,
         reader=kernel.TasksReader(),
         max_concurrency=args.concurrency,
     )
