@@ -23,6 +23,18 @@ class OAIServer:
             (s["set_spec"], s["set_name"], "") for s in self.session.documents.sets()
         ][cursor : cursor + batch_size]
 
+    def listIdentifiers(
+        self, metadataPrefix, set=None, from_=None, until=None, cursor=0, batch_size=10
+    ):
+        # o argumento `metadataPrefix` não é requerido pela interface mas não
+        # está sendo utilizado na busca.
+        return (
+            r.header()
+            for r in self.session.documents.filter(
+                set=set, from_=from_, until=until, offset=cursor, limit=batch_size
+            )
+        )
+
 
 @view_config(route_name="root")
 def root(request):

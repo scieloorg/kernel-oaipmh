@@ -1,6 +1,7 @@
 import logging
 
 import pymongo
+from oaipmh import common
 
 from .. import exceptions
 
@@ -104,3 +105,31 @@ class DocumentStore:
             ],
             key=lambda x: x["set_spec"],
         )
+
+    def filter(self, set=None, from_=None, until=None, offset=0, limit=10):
+        return (
+            OAIRecord(r)
+            for r in self._collection.find({}, skip=offset, limit=limit).sort(
+                "_id", pymongo.ASCENDING
+            )
+        )
+
+
+class OAIRecord:
+    def __init__(self, data):
+        self.data = data
+
+    def header(self):
+        return common.Header(
+            element=None,
+            identifier=self._identifier(),
+            datestamp=self.data["timestamp"],
+            setspec=self._sets_specs(),
+            deleted=False,  # TODO: armazenar o campo `deleted`?
+        )
+
+    def _identifier(self):
+        return "oai:scielo.org:" + self.data["doc_id"]
+
+    def _sets_specs(self):
+        return [s["set_spec"] for s in self.data.get("sets", []) if s.get("set_spec")]
