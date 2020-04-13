@@ -18,10 +18,10 @@ class OAIServer:
     def identify(self):
         return self.meta
 
-    def listSets(self):
+    def listSets(self, cursor=0, batch_size=10):
         return [
             (s["set_spec"], s["set_name"], "") for s in self.session.documents.sets()
-        ]
+        ][cursor : cursor + batch_size]
 
 
 @view_config(route_name="root")
@@ -142,7 +142,7 @@ def main(global_config, **settings):
     config.scan()
 
     session = mongodb.Session(mongodb.MongoDB(settings["oaipmh.mongodb.dsn"]))
-    oaiserver = server.Server(
+    oaiserver = server.BatchingServer(
         OAIServer(session, meta=server_identity(settings)),
         resumption_batch_size=settings["oaipmh.resumptiontoken.batchsize"],
     )
