@@ -5,7 +5,7 @@ from pyramid.config import Configurator
 from pyramid.view import view_config
 from pyramid.response import Response
 from pyramid.httpexceptions import HTTPMethodNotAllowed
-from oaipmh import common, server
+from oaipmh import common, server, metadata
 
 from oaipmhserver.adapters import mongodb
 
@@ -30,6 +30,16 @@ class OAIServer:
         # está sendo utilizado na busca.
         return (
             r.header()
+            for r in self.session.documents.filter(
+                set=set, from_=from_, until=until, offset=cursor, limit=batch_size
+            )
+        )
+
+    def listRecords(
+        self, metadataPrefix, set=None, from_=None, until=None, cursor=0, batch_size=10
+    ):
+        return (
+            (r.header(), r.metadata(), None)
             for r in self.session.documents.filter(
                 set=set, from_=from_, until=until, offset=cursor, limit=batch_size
             )
@@ -154,8 +164,13 @@ def main(global_config, **settings):
     config.scan()
 
     session = mongodb.Session(mongodb.MongoDB(settings["oaipmh.mongodb.dsn"]))
+
+    metadata_registry = metadata.MetadataRegistry()
+    metadata_registry.registerWriter("oai_dc", server.oai_dc_writer)
+
     oaiserver = server.BatchingServer(
         OAIServer(session, meta=server_identity(settings)),
+        metadata_registry=metadata_registry,
         resumption_batch_size=settings["oaipmh.resumptiontoken.batchsize"],
     )
 

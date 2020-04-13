@@ -133,3 +133,76 @@ class OAIRecord:
 
     def _sets_specs(self):
         return [s["set_spec"] for s in self.data.get("sets", []) if s.get("set_spec")]
+
+    def metadata(self):
+        return common.Metadata(
+            None,
+            {
+                "title": self._title(),
+                "creator": self._creators(),
+                "subject": self._subject(),
+                "description": self._description(),
+                "publisher": self._publisher(),
+                "date": self._date(),
+                "type": ["info:eu-repo/semantics/article"],
+                "format": ["text/html"],
+                "identifier": [],
+                "source": [],
+                "language": self._language(),
+                "relation": self._relation(),
+                "rights": ["info:eu-repo/semantics/openAccess"],
+            },
+        )
+
+    def _title(self):
+        return [i.get("title", "") for i in self.data.get("titles", {})]
+
+    def _creators(self):
+        result = []
+        for creator in self.data.get("creators", []):
+            result.append(
+                ", ".join(
+                    i
+                    for i in [
+                        creator.get("surname", "").title(),
+                        creator.get("given_name", "").title(),
+                    ]
+                    if i
+                )
+            )
+        return result
+
+    def _date(self):
+        pub_date = self.data.get("pub_date")
+        try:
+            return [pub_date.strftime("%Y-%m-%d")]
+        except AttributeError:
+            return []
+
+    def _subject(self):
+        return [i["kwd"].title() for i in self.data.get("keywords", []) if i.get("kwd")]
+
+    def _description(self):
+        return [
+            i["description"]
+            for i in self.data.get("descriptions", [])
+            if i.get("description")
+        ]
+
+    def _publisher(self):
+        try:
+            return [self.data["publisher"]]
+        except IndexError:
+            return []
+
+    def _language(self):
+        try:
+            return [self.data["language"]]
+        except IndexError:
+            return []
+
+    def _relation(self):
+        try:
+            return [self.data["doi"]]
+        except IndexError:
+            return []
