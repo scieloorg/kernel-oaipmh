@@ -7,10 +7,10 @@ with open(os.path.join(setup_path, "README.md")) as readme:
     long_description = readme.read()
 
 setuptools.setup(
-    name="scielo-oaipmh-provider",
+    name="scielo-kernel-oaipmh",
     version="0.1",
-    author="Gustavo Fonseca",
-    author_email="gustavo@gfonseca.net",
+    author="SciELO Team",
+    author_email="scielo-dev@googlegroups.com",
     description="",
     long_description=long_description,
     long_description_content_type="text/markdown",

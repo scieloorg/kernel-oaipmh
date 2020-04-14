@@ -141,7 +141,7 @@ DEFAULT_SETTINGS = [
         "oaipmh.mongodb.dsn",
         "OAIPMH_MONGODB_DSN",
         split_dsn,
-        "mongodb://localhost:27017",
+        "mongodb://db:27017",
     ),
 ]
 
