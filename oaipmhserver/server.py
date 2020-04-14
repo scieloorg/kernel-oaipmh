@@ -56,6 +56,14 @@ class OAIServer:
 
         return result
 
+    def getRecord(self, metadataPrefix, identifier):
+        doc_id = identifier.rsplit(":")[-1]
+        record = self.session.documents.fetch(doc_id=doc_id)
+        if not record:
+            raise error.IdDoesNotExistError()
+
+        return record.header(), record.metadata(), None
+
 
 @view_config(route_name="root")
 def root(request):

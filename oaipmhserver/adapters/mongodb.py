@@ -132,6 +132,13 @@ class DocumentStore:
             )
         )
 
+    def fetch(self, doc_id):
+        raw_record = self._collection.find_one({"doc_id": doc_id})
+        if raw_record:
+            return OAIRecord(raw_record)
+        else:
+            return None
+
 
 class OAIRecord:
     def __init__(self, data):
