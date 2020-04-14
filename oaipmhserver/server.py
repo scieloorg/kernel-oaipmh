@@ -5,15 +5,16 @@ from pyramid.config import Configurator
 from pyramid.view import view_config
 from pyramid.response import Response
 from pyramid.httpexceptions import HTTPMethodNotAllowed
-from oaipmh import common, server, metadata
+from oaipmh import common, server, metadata, error
 
 from oaipmhserver.adapters import mongodb
 
 
 class OAIServer:
-    def __init__(self, session, meta):
+    def __init__(self, session, meta, formats):
         self.session = session
         self.meta = meta
+        self.formats = formats
 
     def identify(self):
         return self.meta
@@ -44,6 +45,16 @@ class OAIServer:
                 set=set, from_=from_, until=until, offset=cursor, limit=batch_size
             )
         )
+
+    def listMetadataFormats(self, identifier=None):
+        result = [i[:3] for i in self.formats]
+        if identifier:
+            result = [i for i in result if i[0] == identifier]
+
+        if not result:
+            raise error.IdDoesNotExistError()
+
+        return result
 
 
 @view_config(route_name="root")
@@ -157,6 +168,17 @@ def server_identity(settings):
     )
 
 
+METADATA_FORMATS = [
+    # Tupla com os campos: (metadataPrefix, schema, metadataNamespace, writer)
+    (
+        "oai_dc",
+        "http://www.openarchives.org/OAI/2.0/oai_dc.xsd",
+        "http://www.openarchives.org/OAI/2.0/oai_dc/",
+        server.oai_dc_writer,
+    ),
+]
+
+
 def main(global_config, **settings):
     settings.update(parse_settings(settings))
     config = Configurator(settings=settings)
@@ -166,10 +188,12 @@ def main(global_config, **settings):
     session = mongodb.Session(mongodb.MongoDB(settings["oaipmh.mongodb.dsn"]))
 
     metadata_registry = metadata.MetadataRegistry()
-    metadata_registry.registerWriter("oai_dc", server.oai_dc_writer)
+
+    for fmt in METADATA_FORMATS:
+        metadata_registry.registerWriter(fmt[0], fmt[3])
 
     oaiserver = server.BatchingServer(
-        OAIServer(session, meta=server_identity(settings)),
+        OAIServer(session, meta=server_identity(settings), formats=METADATA_FORMATS),
         metadata_registry=metadata_registry,
         resumption_batch_size=settings["oaipmh.resumptiontoken.batchsize"],
     )
