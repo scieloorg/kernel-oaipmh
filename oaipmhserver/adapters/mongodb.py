@@ -75,6 +75,16 @@ class Session:
         return DocumentStore(self._mongodb_client.documents)
 
 
+def _parse_date(date):
+    for fmt in ["%Y-%m-%dT%H:%M:%SZ"]:
+        try:
+            return datetime.strptime(date, fmt)
+        except ValueError:
+            continue
+
+    raise ValueError(f"time data '{date}' does not match any known format")
+
+
 class DocumentStore:
     """Implementação de `interfaces.ChangesDataStore` para armazenamento em 
     MongoDB.
@@ -107,10 +117,18 @@ class DocumentStore:
         )
 
     def filter(self, set=None, from_=None, until=None, offset=0, limit=10):
+        query_params = {}
+        if set:
+            query_params["sets.set_spec"] = set
+        if from_:
+            query_params["timestamp"] = {"$gte": from_}
+        if until:
+            query_params["timestamp"] = {"$lte": until}
+
         return (
             OAIRecord(r)
-            for r in self._collection.find({}, skip=offset, limit=limit).sort(
-                "_id", pymongo.ASCENDING
+            for r in self._collection.find(query_params, skip=offset, limit=limit).sort(
+                "timestamp", pymongo.ASCENDING
             )
         )
 
