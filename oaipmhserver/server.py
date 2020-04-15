@@ -6,6 +6,7 @@ from pyramid.view import view_config
 from pyramid.response import Response
 from pyramid.httpexceptions import HTTPMethodNotAllowed
 from oaipmh import common, server, metadata, error
+from lxml.etree import SubElement
 
 from oaipmhserver.adapters import mongodb
 
@@ -63,6 +64,44 @@ class OAIServer:
             raise error.IdDoesNotExistError()
 
         return record.header(), record.metadata(), None
+
+
+def lang_aware_oai_dc_writer(element, metadata):
+    e_dc = SubElement(
+        element,
+        server.nsoaidc("dc"),
+        nsmap={"oai_dc": server.NS_OAIDC, "dc": server.NS_DC, "xsi": server.NS_XSI},
+    )
+    e_dc.set(
+        "{%s}schemaLocation" % server.NS_XSI,
+        "%s http://www.openarchives.org/OAI/2.0/oai_dc.xsd" % server.NS_DC,
+    )
+    map = metadata.getMap()
+    for name in [
+        "title",
+        "creator",
+        "subject",
+        "description",
+        "publisher",
+        "contributor",
+        "date",
+        "type",
+        "format",
+        "identifier",
+        "source",
+        "language",
+        "relation",
+        "coverage",
+        "rights",
+    ]:
+        for value in map.get(name, []):
+            e = SubElement(e_dc, server.nsdc(name))
+            if isinstance(value, dict):
+                e.text = value["text"]
+                if "lang" in value:
+                    e.set("{http://www.w3.org/XML/1998/namespace}lang", value["lang"])
+            else:
+                e.text = value
 
 
 @view_config(route_name="root")
@@ -184,7 +223,7 @@ METADATA_FORMATS = [
         "oai_dc",
         "http://www.openarchives.org/OAI/2.0/oai_dc.xsd",
         "http://www.openarchives.org/OAI/2.0/oai_dc/",
-        server.oai_dc_writer,
+        lang_aware_oai_dc_writer,
     ),
 ]
 

@@ -140,6 +140,30 @@ class DocumentStore:
             return None
 
 
+# Mapeamento definido pela equipe do OpenAIRE
+ARTICLETYPE_TO_VOCABULARY_MAP = {
+    "research-article": "info:eu-repo/semantics/article",
+    "article-commentary": "info:eu-repo/semantics/other",
+    "book-review": "info:eu-repo/semantics/review",
+    "brief-report": "info:eu-repo/semantics/report",
+    "case-report": "info:eu-repo/semantics/report",
+    "correction": "info:eu-repo/semantics/other",
+    "editorial": "info:eu-repo/semantics/other",
+    "in-brief": "info:eu-repo/semantics/other",
+    "letter": "info:eu-repo/semantics/other",
+    "other": "info:eu-repo/semantics/other",
+    "partial-retraction": "info:eu-repo/semantics/other",
+    "rapid-communication": "info:eu-repo/semantics/other",
+    "reply": "info:eu-repo/semantics/other",
+    "retraction": "info:eu-repo/semantics/other",
+    "review-article": "info:eu-repo/semantics/article",
+}
+
+
+def fetch_pubtype_from_vocabulary(typ):
+    return ARTICLETYPE_TO_VOCABULARY_MAP.get(typ, "info:eu-repo/semantics/other")
+
+
 class OAIRecord:
     def __init__(self, data):
         self.data = data
@@ -169,7 +193,7 @@ class OAIRecord:
                 "description": self._description(),
                 "publisher": self._publisher(),
                 "date": self._date(),
-                "type": ["info:eu-repo/semantics/article"],
+                "type": [fetch_pubtype_from_vocabulary(self.data.get("type"))],
                 "format": ["text/html"],
                 "identifier": [],
                 "source": [],
@@ -180,7 +204,10 @@ class OAIRecord:
         )
 
     def _title(self):
-        return [i.get("title", "") for i in self.data.get("titles", {})]
+        return [
+            {"text": i.get("title", ""), "lang": i.get("lang", "")}
+            for i in self.data.get("titles", {})
+        ]
 
     def _creators(self):
         result = []
@@ -205,11 +232,15 @@ class OAIRecord:
             return []
 
     def _subject(self):
-        return [i["kwd"].title() for i in self.data.get("keywords", []) if i.get("kwd")]
+        return [
+            {"text": i["kwd"].title(), "lang": i.get("lang", "")}
+            for i in self.data.get("keywords", [])
+            if i.get("kwd")
+        ]
 
     def _description(self):
         return [
-            i["description"]
+            {"text": i["description"], "lang": i.get("lang", "")}
             for i in self.data.get("descriptions", [])
             if i.get("description")
         ]
