@@ -137,11 +137,13 @@ DEFAULT_SETTINGS = [
         "identity",
     ),
     ("oaipmh.resumptiontoken.batchsize", "OAIPMH_RESUMPTIONTOKEN_BATCHSIZE", int, 100),
+    ("oaipmh.mongodb.dsn", "OAIPMH_MONGODB_DSN", split_dsn, "mongodb://db:27017",),
+    ("oaipmh.mongodb.replicaset", "OAIPMH_MONGODB_REPLICASET", str, ""),
     (
-        "oaipmh.mongodb.dsn",
-        "OAIPMH_MONGODB_DSN",
-        split_dsn,
-        "mongodb://db:27017",
+        "oaipmh.mongodb.readpreference",
+        "OAIPMH_MONGODB_READPREFERENCE",
+        str,
+        "secondaryPreferred",
     ),
 ]
 
@@ -193,7 +195,14 @@ def main(global_config, **settings):
     config.add_route("root", "/")
     config.scan()
 
-    session = mongodb.Session(mongodb.MongoDB(settings["oaipmh.mongodb.dsn"]))
+    mongo = mongodb.MongoDB(
+        settings["oaipmh.mongodb.dsn"],
+        options={
+            "replicaSet": settings["oaipmh.mongodb.replicaset"],
+            "readPreference": settings["oaipmh.mongodb.readpreference"],
+        },
+    )
+    session = mongodb.Session(mongo)
 
     metadata_registry = metadata.MetadataRegistry()
 
