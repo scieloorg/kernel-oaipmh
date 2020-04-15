@@ -61,6 +61,10 @@ class MongoDB:
     def documents(self):
         return self._collection("documents")
 
+    @property
+    def variables(self):
+        return self._collection("variables")
+
 
 class Session:
     """Implementação de `interfaces.Session` para armazenamento em MongoDB.
@@ -73,6 +77,10 @@ class Session:
     @property
     def documents(self):
         return DocumentStore(self._mongodb_client.documents)
+
+    @property
+    def variables(self):
+        return VariableStore(self._mongodb_client.variables)
 
 
 def _parse_date(date):
@@ -138,6 +146,23 @@ class DocumentStore:
             return OAIRecord(raw_record)
         else:
             return None
+
+
+class VariableStore:
+    """Armazena variáveis da aplicação.
+    """
+
+    def __init__(self, collection):
+        self._collection = collection
+
+    def upsert(self, name, value):
+        self._collection.update(
+            {"_id": name}, {"_id": name, "value": value}, upsert=True
+        )
+
+    def fetch(self, name, default=""):
+        raw_record = self._collection.find_one({"_id": name}) or {}
+        return raw_record.get("value", default)
 
 
 # Mapeamento definido pela equipe do OpenAIRE

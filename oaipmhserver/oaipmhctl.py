@@ -74,6 +74,10 @@ class Synchronizer:
         
         Retorna a o timestamp do último registro baixado.
         """
+        LOGGER.info(
+            'starting to sync records from remote since "%s"',
+            since or "the very beginning",
+        )
         tasks = self.reader.read(self.source.changes(since=since))
         self.get_docs(tasks.docs_to_get())
         return tasks.timestamp
@@ -94,9 +98,17 @@ def sync(args):
         reader=kernel.TasksReader(),
         max_concurrency=args.concurrency,
     )
-    # TODO: gerenciar automaticamente o valor de `since`.
-    last_synced_timestamp = sync.sync(since=args.since)
-    print("Last synced timestamp: ", last_synced_timestamp)
+    if args.since:
+        since = args.since
+    else:
+        LOGGER.info(
+            'param "since" was not given. looking up for it in the local database'
+        )
+        since = session.variables.fetch("last_synced_timestamp")
+
+    last_synced_timestamp = sync.sync(since=since)
+    session.variables.upsert("last_synced_timestamp", last_synced_timestamp)
+    LOGGER.info("Timestamp of the last synced record: %s", last_synced_timestamp)
 
 
 def cli(argv=None):
