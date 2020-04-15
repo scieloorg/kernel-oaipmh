@@ -9,7 +9,7 @@ from oaipmhserver import interfaces
 LOGGER = logging.getLogger(__name__)
 
 EPILOG = """\
-Copyright 2019 SciELO <scielo-dev@googlegroups.com>.
+Copyright 2020 SciELO <scielo-dev@googlegroups.com>.
 Licensed under the terms of the BSD license. Please see LICENSE in the source
 code for more information.
 """
