@@ -107,8 +107,11 @@ def sync(args):
         since = session.variables.fetch("last_synced_timestamp")
 
     last_synced_timestamp = sync.sync(since=since)
-    session.variables.upsert("last_synced_timestamp", last_synced_timestamp)
-    LOGGER.info("Timestamp of the last synced record: %s", last_synced_timestamp)
+    if last_synced_timestamp:
+        session.variables.upsert("last_synced_timestamp", last_synced_timestamp)
+        LOGGER.info("timestamp of the last synced record: %s", last_synced_timestamp)
+    else:
+        LOGGER.info("the databases are already synced")
 
 
 def cli(argv=None):
