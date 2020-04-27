@@ -28,8 +28,7 @@ class OAIServer:
     def listIdentifiers(
         self, metadataPrefix, set=None, from_=None, until=None, cursor=0, batch_size=10
     ):
-        # o argumento `metadataPrefix` não é requerido pela interface mas não
-        # está sendo utilizado na busca.
+        self._check_metadata_prefix(metadataPrefix)
         return (
             r.header()
             for r in self.session.documents.filter(
@@ -40,6 +39,7 @@ class OAIServer:
     def listRecords(
         self, metadataPrefix, set=None, from_=None, until=None, cursor=0, batch_size=10
     ):
+        self._check_metadata_prefix(metadataPrefix)
         return (
             (r.header(), r.metadata(), None)
             for r in self.session.documents.filter(
@@ -58,12 +58,19 @@ class OAIServer:
         return result
 
     def getRecord(self, metadataPrefix, identifier):
+        self._check_metadata_prefix(metadataPrefix)
         doc_id = identifier.rsplit(":")[-1]
         record = self.session.documents.fetch(doc_id=doc_id)
         if not record:
             raise error.IdDoesNotExistError()
 
         return record.header(), record.metadata(), None
+
+    def _check_metadata_prefix(self, identifier):
+        try:
+            _ = self.listMetadataFormats(identifier=identifier)
+        except error.IdDoesNotExistError:
+            raise error.CannotDisseminateFormatError from None
 
 
 def lang_aware_oai_dc_writer(element, metadata):
@@ -214,6 +221,7 @@ def server_identity(settings):
         deletedRecord=settings["oaipmh.repo.deletedrecord"],
         granularity=settings["oaipmh.repo.granularity"],
         compression=settings["oaipmh.repo.compression"],
+        toolkit_description=False,
     )
 
 
