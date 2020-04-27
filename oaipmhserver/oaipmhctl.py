@@ -114,6 +114,13 @@ def sync(args):
         LOGGER.info("the databases are already synced")
 
 
+def create_indexes(args):
+    from oaipmhserver.adapters import mongodb
+
+    mongo = mongodb.MongoDB([dsn.strip() for dsn in args.mongodb_dsn.split() if dsn],)
+    mongo.create_indexes()
+
+
 def cli(argv=None):
     if argv is None:
         argv = sys.argv[1:]
@@ -130,6 +137,18 @@ def cli(argv=None):
     parser_sync.add_argument("source", help="URI of the data source.")
     parser_sync.add_argument("mongodb_dsn", help="DSN of the data destination.")
     parser_sync.set_defaults(func=sync)
+
+    parser_create_indexes = subparsers.add_parser(
+        "create-indexes",
+        help="Create all database indexes",
+        description="This operation may cause outages. "
+        "If you are using replica sets please read "
+        "https://docs.mongodb.com/manual/core/index-creation/#index-operations-replicated-build",
+    )
+    parser_create_indexes.add_argument(
+        "mongodb_dsn", help="DSN for MongoDB node where indexes will be created."
+    )
+    parser_create_indexes.set_defaults(func=create_indexes)
 
     args = parser.parse_args(argv)
     # todas as mensagens serão omitidas se level > 50

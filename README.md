@@ -16,7 +16,7 @@ Metodologia SciELO consulte https://docs.google.com/document/d/14YBl7--4ouaWBQhx
 
 ## Requisitos
 
-* Python 3.7+
+* Python 3.7
 * MongoDB
 
 
@@ -34,7 +34,6 @@ oaipmh.repo.name                 | OAIPMH_REPO_NAME                 | SciELO - S
 oaipmh.repo.baseurl              | OAIPMH_REPO_BASEURL              | http://www.scielo.br/oai/scielo-oai.php
 oaipmh.repo.protocolversion      | OAIPMH_REPO_PROTOCOLVERSION      | 2.0
 oaipmh.repo.adminemails          | OAIPMH_REPO_ADMINEMAILS          | scielo@scielo.org
-oaipmh.repo.earliestdatestamp    | OAIPMH_REPO_EARLIESTDATESTAMP    | 1998-08-01
 oaipmh.repo.deletedrecord        | OAIPMH_REPO_DELETEDRECORD        | no
 oaipmh.repo.granularity          | OAIPMH_REPO_GRANULARITY          | YYYY-MM-DDThh:mm:ssZ
 oaipmh.repo.compression          | OAIPMH_REPO_COMPRESSION          | identity
@@ -72,6 +71,14 @@ $ pserve development.ini
 Esta configuração espera uma instância de MongoDB escutando *localhost* na
 porta *27017*.
 
+Na primeira vez será necessário criar os índices do banco de dados. Para tal
+execute o comando `oaipmhctl create-indexes`*`mongo-db-dsn`*. Exemplo:
+
+```bash
+$ oaipmhctl create-indexes mongodb://localhost:27017
+```
+
+
 Para sincronizar o banco de dados da aplicação com o de uma instância do
 _Kernel_, execute o comando `oaipmhctl sync`*`source-url mongo-db-dsn`*. Exemplo:
 
@@ -84,7 +91,10 @@ $ oaipmhctl sync http://my-kernel:6543 mongodb://localhost:27017
 
 `$ docker-compose up -d`
 
-Na primeira vez será necessário sincronizar o banco de dados:
+Na primeira vez será necessário criar os índices do banco de dados e
+sincronizar o banco de dados:
+
+`$ docker-compose exec webapp_oaipmh oaipmhctl create-indexes`*`mongo-db-dsn`*
 
 `$ docker-compose exec webapp_oaipmh oaipmhctl sync`*`source-url mongo-db-dsn`*
 

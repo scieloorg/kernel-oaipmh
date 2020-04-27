@@ -65,6 +65,11 @@ class MongoDB:
     def variables(self):
         return self._collection("variables")
 
+    def create_indexes(self):
+        self.documents.create_index(
+            [("timestamp", pymongo.ASCENDING)], unique=False, background=True
+        )
+
 
 class Session:
     """Implementação de `interfaces.Session` para armazenamento em MongoDB.
@@ -146,6 +151,19 @@ class DocumentStore:
             return OAIRecord(raw_record)
         else:
             return None
+
+    def earliest_datestamp(self):
+        cursor = self._collection.find(
+            {},
+            sort=[("timestamp", pymongo.ASCENDING)],
+            projection={"timestamp": True, "_id": False},
+        ).limit(1)
+
+        if cursor.count() < 1:
+            return None
+
+        raw_record = next(cursor)
+        return raw_record.get("timestamp")
 
 
 class VariableStore:

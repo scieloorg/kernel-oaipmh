@@ -168,12 +168,6 @@ DEFAULT_SETTINGS = [
         lambda x: str(x).split(),
         "scielo@scielo.org",
     ),
-    (
-        "oaipmh.repo.earliestdatestamp",
-        "OAIPMH_REPO_EARLIESTDATESTAMP",
-        parse_date,
-        "1998-08-01",
-    ),
     ("oaipmh.repo.deletedrecord", "OAIPMH_REPO_DELETEDRECORD", str, "no"),
     ("oaipmh.repo.granularity", "OAIPMH_REPO_GRANULARITY", str, "YYYY-MM-DDThh:mm:ssZ"),
     (
@@ -211,13 +205,13 @@ def parse_settings(settings):
     return parsed
 
 
-def server_identity(settings):
+def server_identity(settings, earliest_datestamp):
     return common.Identify(
         repositoryName=settings["oaipmh.repo.name"],
         baseURL=settings["oaipmh.repo.baseurl"],
         protocolVersion=settings["oaipmh.repo.protocolversion"],
         adminEmails=settings["oaipmh.repo.adminemails"],
-        earliestDatestamp=settings["oaipmh.repo.earliestdatestamp"],
+        earliestDatestamp=earliest_datestamp,
         deletedRecord=settings["oaipmh.repo.deletedrecord"],
         granularity=settings["oaipmh.repo.granularity"],
         compression=settings["oaipmh.repo.compression"],
@@ -256,8 +250,16 @@ def main(global_config, **settings):
     for fmt in METADATA_FORMATS:
         metadata_registry.registerWriter(fmt[0], fmt[3])
 
+    earliest_datestamp = session.documents.earliest_datestamp() or parse_date(
+        "1998-01-01"
+    )
+
     oaiserver = server.BatchingServer(
-        OAIServer(session, meta=server_identity(settings), formats=METADATA_FORMATS),
+        OAIServer(
+            session,
+            meta=server_identity(settings, earliest_datestamp=earliest_datestamp),
+            formats=METADATA_FORMATS,
+        ),
         metadata_registry=metadata_registry,
         resumption_batch_size=settings["oaipmh.resumptiontoken.batchsize"],
     )
