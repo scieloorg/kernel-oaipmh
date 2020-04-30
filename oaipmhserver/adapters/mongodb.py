@@ -76,12 +76,16 @@ class Session:
     Trata-se de uma classe concreta e não deve ser generalizada.
     """
 
-    def __init__(self, mongodb_client):
+    def __init__(self, mongodb_client, context=None):
+        """
+        param context: dicionário usado para injetar dependências.
+        """
         self._mongodb_client = mongodb_client
+        self._context = context or {}
 
     @property
     def documents(self):
-        return DocumentStore(self._mongodb_client.documents)
+        return DocumentStore(self._mongodb_client.documents, context=self._context)
 
     @property
     def variables(self):
@@ -103,8 +107,9 @@ class DocumentStore:
     MongoDB.
     """
 
-    def __init__(self, collection):
+    def __init__(self, collection, context):
         self._collection = collection
+        self._context = context
 
     def add(self, doc: dict):
         try:
@@ -139,7 +144,7 @@ class DocumentStore:
             query_params["timestamp"] = {"$lte": until}
 
         return (
-            OAIRecord(r)
+            OAIRecord(r, context=self._context)
             for r in self._collection.find(query_params, skip=offset, limit=limit).sort(
                 "timestamp", pymongo.ASCENDING
             )
@@ -148,7 +153,7 @@ class DocumentStore:
     def fetch(self, doc_id):
         raw_record = self._collection.find_one({"doc_id": doc_id})
         if raw_record:
-            return OAIRecord(raw_record)
+            return OAIRecord(raw_record, context=self._context)
         else:
             return None
 
@@ -208,8 +213,9 @@ def fetch_pubtype_from_vocabulary(typ):
 
 
 class OAIRecord:
-    def __init__(self, data):
+    def __init__(self, data, context):
         self.data = data
+        self._context = context
 
     def header(self):
         return common.Header(
@@ -238,7 +244,11 @@ class OAIRecord:
                 "date": self._date(),
                 "type": [fetch_pubtype_from_vocabulary(self.data.get("type"))],
                 "format": ["text/html"],
-                "identifier": [],
+                "identifier": [
+                    self._context["url_for_html"](
+                        acron=self.data["journal_acron"], doc_id=self.data["doc_id"],
+                    ),
+                ],
                 "source": [],
                 "language": self._language(),
                 "relation": self._relation(),

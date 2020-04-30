@@ -293,5 +293,8 @@ class DataConnector(interfaces.DataConnector):
             "descriptions": descriptions,
             "keywords": keywords,
             "type": _nestget(front, "article", 0, "type", 0),
+            "journal_acron": _nestget(
+                front, "journal_meta", 0, "journal_publisher_id", 0
+            ),
             # TODO: add permissions
         }

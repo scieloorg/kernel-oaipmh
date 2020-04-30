@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from urllib.parse import urljoin
 
 from pyramid.config import Configurator
 from pyramid.view import view_config
@@ -185,6 +186,7 @@ DEFAULT_SETTINGS = [
         str,
         "secondaryPreferred",
     ),
+    ("oaipmh.site.baseurl", "OAIPMH_SITE_BASEURL", str, "https://www.scielo.br",),
 ]
 
 
@@ -243,7 +245,12 @@ def main(global_config, **settings):
             "readPreference": settings["oaipmh.mongodb.readpreference"],
         },
     )
-    session = mongodb.Session(mongo)
+    context = {
+        "url_for_html": lambda acron, doc_id: urljoin(
+            settings["oaipmh.site.baseurl"], f"/j/{acron}/a/{doc_id}"
+        ),
+    }
+    session = mongodb.Session(mongo, context=context)
 
     metadata_registry = metadata.MetadataRegistry()
 

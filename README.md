@@ -38,6 +38,7 @@ oaipmh.repo.deletedrecord        | OAIPMH_REPO_DELETEDRECORD        | no
 oaipmh.repo.granularity          | OAIPMH_REPO_GRANULARITY          | YYYY-MM-DDThh:mm:ssZ
 oaipmh.repo.compression          | OAIPMH_REPO_COMPRESSION          | identity
 oaipmh.resumptiontoken.batchsize | OAIPMH_RESUMPTIONTOKEN_BATCHSIZE | 100
+oaipmh.site.baseurl              | OAIPMH_SITE_BASEURL              | https://www.scielo.br
 
 
 A configuração padrão assume o uso de uma instância *standalone* do MongoDB. Para
