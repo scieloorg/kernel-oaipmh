@@ -53,10 +53,11 @@ separando suas URIs com espaços em branco ou quebra de linha.
 Configurações avançadas:
 
 
-variável de ambiente  | valor padrão
-----------------------|-------------
-OAIPMH_MAX_RETRIES    | 4
-OAIPMH_BACKOFF_FACTOR | 1.2
+variável de ambiente    | valor padrão
+------------------------|-------------
+OAIPMH_MAX_RETRIES      | 4
+OAIPMH_BACKOFF_FACTOR   | 1.2
+OAIPMH_HTTP_REQ_TIMEOUT | 5
 
 
 ### Executando via código-fonte e Pip:

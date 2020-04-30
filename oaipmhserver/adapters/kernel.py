@@ -16,6 +16,7 @@ LOGGER = logging.getLogger(__name__)
 
 MAX_RETRIES = int(os.environ.get("OAIPMH_MAX_RETRIES", "4"))
 BACKOFF_FACTOR = float(os.environ.get("OAIPMH_BACKOFF_FACTOR", "1.2"))
+HTTP_REQ_TIMEOUT = float(os.environ.get("OAIPMH_HTTP_REQ_TIMEOUT", 5))
 
 
 class EnqueuedState:
@@ -140,7 +141,7 @@ class retry_gracefully:
 
 
 @retry_gracefully()
-def fetch_data(url: str, timeout: float = 2) -> bytes:
+def fetch_data(url: str, timeout: float = HTTP_REQ_TIMEOUT) -> bytes:
     try:
         response = requests.get(url, timeout=timeout)
     except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as exc:
