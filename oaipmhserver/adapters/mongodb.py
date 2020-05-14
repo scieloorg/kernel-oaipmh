@@ -20,9 +20,7 @@ class MongoDB:
     https://api.mongodb.com/python/current/api/pymongo/mongo_client.html
     """
 
-    def __init__(
-        self, uri, dbname, mongoclient=pymongo.MongoClient, options=None
-    ):
+    def __init__(self, uri, dbname, mongoclient=pymongo.MongoClient, options=None):
         self._dbname = dbname
         self._uri = uri
         self._MongoClient = mongoclient

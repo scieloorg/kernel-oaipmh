@@ -118,7 +118,9 @@ def sync(args):
 def create_indexes(args):
     from oaipmhserver.adapters import mongodb
 
-    mongo = mongodb.MongoDB([dsn.strip() for dsn in args.mongodb_dsn.split() if dsn], args.dbname)
+    mongo = mongodb.MongoDB(
+        [dsn.strip() for dsn in args.mongodb_dsn.split() if dsn], args.dbname
+    )
     mongo.create_indexes()
 
 
