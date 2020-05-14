@@ -179,6 +179,7 @@ DEFAULT_SETTINGS = [
     ),
     ("oaipmh.resumptiontoken.batchsize", "OAIPMH_RESUMPTIONTOKEN_BATCHSIZE", int, 100),
     ("oaipmh.mongodb.dsn", "OAIPMH_MONGODB_DSN", split_dsn, "mongodb://db:27017",),
+    ("oaipmh.mongodb.dbname", "OAIPMH_MONGODB_DBNAME", str, "oaipmh",),
     ("oaipmh.mongodb.replicaset", "OAIPMH_MONGODB_REPLICASET", str, ""),
     (
         "oaipmh.mongodb.readpreference",
@@ -240,6 +241,7 @@ def main(global_config, **settings):
 
     mongo = mongodb.MongoDB(
         settings["oaipmh.mongodb.dsn"],
+        settings["oaipmh.mongodb.dbname"],
         options={
             "replicaSet": settings["oaipmh.mongodb.replicaset"],
             "readPreference": settings["oaipmh.mongodb.readpreference"],

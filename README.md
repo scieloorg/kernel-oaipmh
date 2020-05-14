@@ -28,6 +28,7 @@ Configurando a aplicação:
 diretiva no arquivo .ini         | variável de ambiente             | valor padrão
 ---------------------------------|----------------------------------|--------------------
 oaipmh.mongodb.dsn               | OAIPMH_MONGODB_DSN               | mongodb://db:27017
+oaipmh.mongodb.dbname            | OAIPMH_MONGODB_DBNAME            | oaipmh
 oaipmh.mongodb.replicaset        | OAIPMH_MONGODB_REPLICASET        |
 oaipmh.mongodb.readpreference    | OAIPMH_MONGODB_READPREFERENCE    | secondaryPreferred
 oaipmh.repo.name                 | OAIPMH_REPO_NAME                 | SciELO - Scientific Electronic Library Online
@@ -74,18 +75,18 @@ Esta configuração espera uma instância de MongoDB escutando *localhost* na
 porta *27017*.
 
 Na primeira vez será necessário criar os índices do banco de dados. Para tal
-execute o comando `oaipmhctl create-indexes`*`mongo-db-dsn`*. Exemplo:
+execute o comando `oaipmhctl create-indexes`*`mongo-db-dsn dbname`*. Exemplo:
 
 ```bash
-$ oaipmhctl create-indexes mongodb://localhost:27017
+$ oaipmhctl create-indexes mongodb://localhost:27017 oaipmh
 ```
 
 
 Para sincronizar o banco de dados da aplicação com o de uma instância do
-_Kernel_, execute o comando `oaipmhctl sync`*`source-url mongo-db-dsn`*. Exemplo:
+_Kernel_, execute o comando `oaipmhctl sync`*`source-url mongo-db-dsn dbname`*. Exemplo:
 
 ```bash
-$ oaipmhctl sync http://my-kernel:6543 mongodb://localhost:27017
+$ oaipmhctl sync http://my-kernel:6543 mongodb://localhost:27017 oaipmh
 ```
 
 
@@ -96,9 +97,9 @@ $ oaipmhctl sync http://my-kernel:6543 mongodb://localhost:27017
 Na primeira vez será necessário criar os índices do banco de dados e
 sincronizar o banco de dados:
 
-`$ docker-compose exec webapp_oaipmh oaipmhctl create-indexes`*`mongo-db-dsn`*
+`$ docker-compose exec webapp_oaipmh oaipmhctl create-indexes`*`mongo-db-dsn dbname`*
 
-`$ docker-compose exec webapp_oaipmh oaipmhctl sync`*`source-url mongo-db-dsn`*
+`$ docker-compose exec webapp_oaipmh oaipmhctl sync`*`source-url mongo-db-dsn dbname`*
 
 
 A sincronização deverá ser executada periodicamente, de forma a manter o provedor

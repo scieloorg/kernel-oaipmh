@@ -21,7 +21,7 @@ class MongoDB:
     """
 
     def __init__(
-        self, uri, dbname="oaipmh", mongoclient=pymongo.MongoClient, options=None
+        self, uri, dbname, mongoclient=pymongo.MongoClient, options=None
     ):
         self._dbname = dbname
         self._uri = uri

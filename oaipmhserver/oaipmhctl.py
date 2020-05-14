@@ -88,6 +88,7 @@ def sync(args):
 
     mongo = mongodb.MongoDB(
         [dsn.strip() for dsn in args.mongodb_dsn.split() if dsn],
+        args.dbname,
         options={"replicaSet": args.replicaset},
     )
     session = mongodb.Session(mongo)
@@ -117,7 +118,7 @@ def sync(args):
 def create_indexes(args):
     from oaipmhserver.adapters import mongodb
 
-    mongo = mongodb.MongoDB([dsn.strip() for dsn in args.mongodb_dsn.split() if dsn],)
+    mongo = mongodb.MongoDB([dsn.strip() for dsn in args.mongodb_dsn.split() if dsn], args.dbname)
     mongo.create_indexes()
 
 
@@ -136,6 +137,7 @@ def cli(argv=None):
     parser_sync.add_argument("-s", "--since", default="")
     parser_sync.add_argument("source", help="URI of the data source.")
     parser_sync.add_argument("mongodb_dsn", help="DSN of the data destination.")
+    parser_sync.add_argument("dbname", help="Database name of the data destination.")
     parser_sync.set_defaults(func=sync)
 
     parser_create_indexes = subparsers.add_parser(
@@ -148,6 +150,7 @@ def cli(argv=None):
     parser_create_indexes.add_argument(
         "mongodb_dsn", help="DSN for MongoDB node where indexes will be created."
     )
+    parser_create_indexes.add_argument("dbname", help="Database name.")
     parser_create_indexes.set_defaults(func=create_indexes)
 
     args = parser.parse_args(argv)
